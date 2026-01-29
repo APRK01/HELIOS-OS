@@ -1,0 +1,6 @@
+CompileFlags:
+  Add:
+    - --target=aarch64-unknown-none
+    - -ffreestanding
+    - -nostdlib
+    - -Ilimine
