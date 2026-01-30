@@ -36,8 +36,10 @@ LDFLAGS = \
 	-m aarch64elf
 
 # Source files
-SRCS = kernel.c uart.c console.c shell.c virtio.c keyboard.c
-OBJS = $(patsubst %.c,$(BUILD_DIR)/%.o,$(SRCS))
+SRCS_C = kernel.c uart.c console.c shell.c virtio.c keyboard.c pmm.c heap.c vfs.c string.c tmpfs.c process.c gic.c timer.c irq.c
+SRCS_S = entry.S vectors.S
+
+OBJS = $(patsubst %.c,$(BUILD_DIR)/%.o,$(SRCS_C)) $(patsubst %.S,$(BUILD_DIR)/%.o,$(SRCS_S))
 
 # Default target
 .PHONY: all
@@ -48,7 +50,12 @@ $(BUILD_DIR):
 	mkdir -p $(BUILD_DIR)
 
 # Compile kernel source
+# Compile kernel source
 $(BUILD_DIR)/%.o: %.c | $(BUILD_DIR)
+	$(CC) $(CFLAGS) -c $< -o $@
+
+# Compile assembly source
+$(BUILD_DIR)/%.o: %.S | $(BUILD_DIR)
 	$(CC) $(CFLAGS) -c $< -o $@
 
 # Link kernel

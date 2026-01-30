@@ -13,7 +13,17 @@ int keyboard_init(uint64_t hhdm_offset, uint64_t kernel_vbase,
 // Check if a key is available (non-blocking)
 int keyboard_has_char(void);
 
-// Get an ASCII character (blocking if no key is available)
-char keyboard_getc(void);
+// Get a key code (blocking)
+// Returns 0-255 for ASCII, or special codes below
+int keyboard_getc(void);
+
+#define KEY_UP 0x101
+#define KEY_DOWN 0x102
+#define KEY_LEFT 0x103
+#define KEY_RIGHT 0x104
+#define KEY_HOME 0x105
+#define KEY_END 0x106
+#define KEY_PGUP 0x107
+#define KEY_PGDN 0x108
 
 #endif // KEYBOARD_H

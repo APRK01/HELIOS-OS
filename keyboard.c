@@ -148,15 +148,33 @@ int keyboard_init(uint64_t hhdm_offset, uint64_t kernel_vbase,
   return 0;
 }
 
-static char ev_to_ascii(uint16_t code) {
+static int ev_to_key(uint16_t code) {
   if (code == 28)
     return '\n';
   if (code == 1)
-    return 27;
+    return 27; // ESC
   if (code == 14)
-    return 8;
+    return 8; // Backspace
   if (code == 57)
     return ' ';
+
+  // Special Keys (Linux Input Event Codes)
+  if (code == 103)
+    return KEY_UP;
+  if (code == 108)
+    return KEY_DOWN;
+  if (code == 105)
+    return KEY_LEFT;
+  if (code == 106)
+    return KEY_RIGHT;
+  if (code == 102)
+    return KEY_HOME;
+  if (code == 107)
+    return KEY_END;
+  if (code == 104)
+    return KEY_PGUP;
+  if (code == 109)
+    return KEY_PGDN;
 
   static const char row1[] = "1234567890-=";
   if (code >= 2 && code <= 13)
@@ -184,7 +202,7 @@ int keyboard_has_char(void) {
   return (used_ptr->idx != last_used_idx);
 }
 
-char keyboard_getc(void) {
+int keyboard_getc(void) {
   while (!keyboard_has_char()) {
     __asm__ volatile("yield");
   }
@@ -202,9 +220,9 @@ char keyboard_getc(void) {
   __asm__ volatile("dc ivac, %0" ::"r"(evt) : "memory");
   __asm__ volatile("dmb sy" ::: "memory");
 
-  char c = 0;
+  int c = 0;
   if (evt->type == 1 && evt->value == 1) {
-    c = ev_to_ascii(evt->code);
+    c = ev_to_key(evt->code);
   }
 
   // Recycle

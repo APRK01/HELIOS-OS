@@ -14,20 +14,15 @@ void console_putchar(char c);
 // Print a string to the console
 void console_print(const char *str);
 
-// Clear the screen
+void console_print_hex(uint64_t n);
+void console_print_dec(uint64_t n);
 void console_clear(void);
-
-// Backspace (delete previous character)
 void console_backspace(void);
-
-// Blinking cursor support
 void console_set_cursor_visible(int visible);
-void console_draw_cursor(void);
 
-// Get current cursor X position
+// Cursor control
 uint32_t console_get_cursor_x(void);
-
-// Get current cursor Y position
 uint32_t console_get_cursor_y(void);
+void console_set_cursor(uint32_t x, uint32_t y);
 
 #endif // CONSOLE_H

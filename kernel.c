@@ -1,8 +1,15 @@
 #include "console.h"
+#include "gic.h"
+#include "heap.h"
 #include "keyboard.h"
 #include "limine.h"
+#include "pmm.h"
+#include "process.h"
 #include "shell.h"
+#include "timer.h"
+#include "tmpfs.h"
 #include "uart.h"
+#include "vfs.h"
 #include <stddef.h>
 #include <stdint.h>
 
@@ -20,6 +27,11 @@ __attribute__((
     used,
     section(".limine_requests"))) static volatile struct limine_hhdm_request
     hhdm_request = {.id = LIMINE_HHDM_REQUEST, .revision = 0};
+
+__attribute__((
+    used,
+    section(".limine_requests"))) static volatile struct limine_memmap_request
+    memmap_request = {.id = LIMINE_MEMMAP_REQUEST, .revision = 0};
 
 __attribute__((used, section(".limine_requests"))) static volatile struct
     limine_kernel_address_request kernel_address_request = {
@@ -68,7 +80,37 @@ void _start(void) {
     keyboard_init(hhdm, vbase, pbase);
   }
 
-  // 4. Launch the shell
+  // 4. Initialize PMM
+  if (memmap_request.response != NULL && hhdm_request.response != NULL) {
+    pmm_init(memmap_request.response, hhdm_request.response->offset);
+  } else {
+    console_print("KERNEL PANIC: No Memory Map or HHDM!\n");
+    hcf();
+  }
+
+  // 5. Initialize Heap
+  heap_init();
+
+  // 5.5 Initialize Multitasking
+  process_init();
+
+  // 5.6 Interrupts DISABLED - conflicts with VirtIO keyboard
+  // Investigation needed: GIC/Timer IRQ breaks VirtIO MMIO polling
+  // extern char vectors[];
+  // __asm__ volatile("msr vbar_el1, %0" ::"r"(vectors));
+  // gic_init();
+  // timer_init(10);
+  // __asm__ volatile("msr daifclr, #2");
+
+  // 6. Initialize Filesystem
+  fs_root = tmpfs_init();
+  if (fs_root) {
+    console_print("VFS: TmpFS mounted at /\n");
+  } else {
+    console_print("VFS: Failed to mount TmpFS!\n");
+  }
+
+  // 7. Launch the shell
   shell_run();
 
   // Loop forever
