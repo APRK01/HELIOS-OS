@@ -37,7 +37,7 @@ void *k_memcpy(void *dest, const void *src, size_t n) {
   return dest;
 }
 
-// Basic memmove that handles overlap safely
+ 
 void *k_memmove(void *dest, const void *src, size_t n) {
   unsigned char *d = dest;
   const unsigned char *s = src;
@@ -62,4 +62,30 @@ int k_strncmp(const char *s1, const char *s2, size_t n) {
   if (n == 0)
     return 0;
   return *(unsigned char *)s1 - *(unsigned char *)s2;
+}
+
+static void reverse(char s[]) {
+  int i, j;
+  char c;
+
+  for (i = 0, j = k_strlen(s) - 1; i < j; i++, j--) {
+    c = s[i];
+    s[i] = s[j];
+    s[j] = c;
+  }
+}
+
+void itoa(int n, char s[], int base) {
+  int i, sign;
+
+  if ((sign = n) < 0)
+    n = -n;
+  i = 0;
+  do {
+    s[i++] = n % base + '0';
+  } while ((n /= base) > 0);
+  if (sign < 0)
+    s[i++] = '-';
+  s[i] = '\0';
+  reverse(s);
 }

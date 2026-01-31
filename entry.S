@@ -1,14 +1,14 @@
 .global switch_to
 
-// void switch_to(task_t *prev, task_t *next);
-// x0 = prev pointer
-// x1 = next pointer
-// task_t->sp is at offset 0
+ 
+ 
+ 
+ 
 
 switch_to:
-    // 1. Save state of 'prev' task
-    // Allocate stack space for callee-saved registers (x19-x30)
-    // 12 registers * 8 bytes = 96 bytes
+     
+     
+     
     sub sp, sp, #96
     stp x19, x20, [sp, #0]
     stp x21, x22, [sp, #16]
@@ -17,17 +17,17 @@ switch_to:
     stp x27, x28, [sp, #64]
     stp x29, x30, [sp, #80]
 
-    // Save stack pointer to prev->sp
-    // We cannot store SP directly to memory, move to x9 first
+     
+     
     mov x9, sp
     str x9, [x0]
 
-    // 2. Load state of 'next' task
-    // Load stack pointer from next->sp
+     
+     
     ldr x9, [x1]
     mov sp, x9
 
-    // Restore callee-saved registers
+     
     ldp x19, x20, [sp, #0]
     ldp x21, x22, [sp, #16]
     ldp x23, x24, [sp, #32]
@@ -36,5 +36,5 @@ switch_to:
     ldp x29, x30, [sp, #80]
     add sp, sp, #96
 
-    // Return into the new task
+     
     ret

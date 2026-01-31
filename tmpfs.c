@@ -3,7 +3,7 @@
 #include "heap.h"
 #include "string.h"
 
-// TmpFS Operations
+ 
 static uint64_t tmpfs_read(fs_node_t *node, uint64_t offset, uint64_t size,
                            uint8_t *buffer);
 static uint64_t tmpfs_write(fs_node_t *node, uint64_t offset, uint64_t size,
@@ -11,11 +11,11 @@ static uint64_t tmpfs_write(fs_node_t *node, uint64_t offset, uint64_t size,
 static struct dirent *tmpfs_readdir(fs_node_t *node, uint32_t index);
 static fs_node_t *tmpfs_finddir(fs_node_t *node, char *name);
 
-// Forward declarations for create functions
+ 
 fs_node_t *tmpfs_create_file(fs_node_t *parent, char *name);
 fs_node_t *tmpfs_create_dir(fs_node_t *parent, char *name);
 
-// Helper to create a new generic node
+ 
 static fs_node_t *create_node(char *name, uint32_t flags) {
   fs_node_t *node = (fs_node_t *)malloc(sizeof(fs_node_t));
   k_memset(node, 0, sizeof(fs_node_t));
@@ -36,12 +36,12 @@ fs_node_t *tmpfs_init(void) { return tmpfs_create_dir(NULL, "root"); }
 
 fs_node_t *tmpfs_create_file(fs_node_t *parent, char *name) {
   fs_node_t *node = create_node(name, FS_FILE);
-  // ptr will hold data content (char*)
+   
   node->ptr = NULL;
   node->length = 0;
 
   if (parent) {
-    // Add to parent's list
+     
     node->next = parent->ptr;
     parent->ptr = node;
   }
@@ -50,7 +50,7 @@ fs_node_t *tmpfs_create_file(fs_node_t *parent, char *name) {
 
 fs_node_t *tmpfs_create_dir(fs_node_t *parent, char *name) {
   fs_node_t *node = create_node(name, FS_DIRECTORY);
-  // ptr will hold head of children list (fs_node_t*)
+   
   node->ptr = NULL;
 
   if (parent) {
@@ -82,15 +82,15 @@ static uint64_t tmpfs_write(fs_node_t *node, uint64_t offset, uint64_t size,
   if ((node->flags & 0x7) != FS_FILE)
     return 0;
 
-  // Simple append/overwrite logic relying on realloc... wait, we don't have
-  // realloc. For TmpFS simplistic: always allocate large enough OR create a new
-  // buffer. We will implement a simple re-allocate logic: new_buffer = malloc;
-  // memcpy; free old.
+   
+   
+   
+   
 
   size_t new_end = offset + size;
   if (new_end > node->length) {
-    // Resize
-    char *new_data = (char *)malloc(new_end + 1); // +1 safety
+     
+    char *new_data = (char *)malloc(new_end + 1);  
     if (!new_data)
       return 0;
     k_memset(new_data, 0, new_end + 1);
@@ -99,7 +99,7 @@ static uint64_t tmpfs_write(fs_node_t *node, uint64_t offset, uint64_t size,
       k_memcpy(new_data, node->ptr, node->length);
       free(node->ptr);
     }
-    node->ptr = (struct fs_node *)new_data; // Casting for storage
+    node->ptr = (struct fs_node *)new_data;  
     node->length = new_end;
   }
 
@@ -108,13 +108,13 @@ static uint64_t tmpfs_write(fs_node_t *node, uint64_t offset, uint64_t size,
   return size;
 }
 
-static struct dirent dir_entry; // Static buffer for readdir
+static struct dirent dir_entry;  
 
 static struct dirent *tmpfs_readdir(fs_node_t *node, uint32_t index) {
   if ((node->flags & 0x7) != FS_DIRECTORY)
     return NULL;
 
-  // ptr points to the first child (head of list)
+   
   fs_node_t *child = (fs_node_t *)node->ptr;
   uint32_t i = 0;
   while (child != NULL) {

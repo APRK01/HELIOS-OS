@@ -5,4 +5,4 @@
 
 void timer_init(uint64_t interval_ms);
 
-#endif // TIMER_H
+#endif  

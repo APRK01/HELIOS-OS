@@ -11,5 +11,6 @@ void *k_memmove(void *dest, const void *src, size_t n);
 void *k_memcpy(void *dest, const void *src, size_t n);
 void *k_memset(void *s, int c, size_t n);
 int k_strncmp(const char *s1, const char *s2, size_t n);
+void itoa(int n, char s[], int base);
 
 #endif

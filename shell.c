@@ -1,5 +1,7 @@
 #include "shell.h"
 #include "console.h"
+#include "donut.h"
+#include "editor.h"
 #include "fetch_logo.h"
 #include "heap.h"
 #include "pmm.h"
@@ -10,21 +12,22 @@
 #include <stddef.h>
 #include <stdint.h>
 
-static fs_node_t *cwd = NULL;
+ 
+fs_node_t *cwd = NULL;
 
 #define CMD_BUFFER_SIZE 128
 #define PROMPT "HELIOS:> "
 
 #include "string.h"
 
-// Halt the CPU
+ 
 static void hcf(void) {
   for (;;) {
     __asm__ volatile("wfi");
   }
 }
 
-// Command handlers
+ 
 static void cmd_version(void) { console_print("Helios OS v0.1-ARM64\n"); }
 
 static void cmd_cls(void) { console_clear(); }
@@ -48,6 +51,14 @@ static void cmd_help(void) {
   console_print("  write <f>  - Write text to a file\n");
   console_print("  cat <f>    - Show file contents\n");
   console_print("  cd <dir>   - Change directory\n");
+  console_print("  echo <txt> - Print text to console\n");
+  console_print("  pwd        - Print working directory\n");
+  console_print("  rm <f>     - Remove a file\n");
+  console_print("  rmdir <d>  - Remove empty directory\n");
+  console_print("  cp <s> <d> - Copy a file\n");
+  console_print("  mv <s> <d> - Move/rename a file\n");
+  console_print("  edit <f>   - Text editor (F2 save, ESC quit)\n");
+  console_print("  donut      - Spinner 🍩\n");
   console_print("  multitask  - Run multitasking demo\n");
 }
 
@@ -57,29 +68,40 @@ static void cmd_fetch(void) {
   int info_count = 6;
   int total_lines = (logo_height > info_count) ? logo_height : info_count;
 
-  // Vertical alignment offset for info
+   
   int info_start_line =
       (logo_height > info_count) ? (logo_height - info_count) / 2 : 0;
 
-  // Column where info starts (increased for cool wide logo)
+   
   int info_col = 65;
 
-  console_print("\n");
-  uint32_t start_y = console_get_cursor_y();
+   
+   
+  console_print("\n");  
+  for (int i = 0; i < total_lines; i++) {
+    console_print("\n");
+  }
+
+   
+   
+  uint32_t final_y = console_get_cursor_y();
+   
+   
+   
+   
+   
+
+  uint32_t start_y = final_y - total_lines;
 
   for (int i = 0; i < total_lines; i++) {
-    // 1. Force Cursor to Start of Line for Logo
+     
     console_set_cursor(0, start_y + i);
-
-    // 2. Print Logo Line (if exists)
     if (i < logo_height) {
       console_print(fetch_logo[i]);
     }
 
-    // 3. Force Cursor to Info Column (Strict Alignment)
+     
     console_set_cursor(info_col, start_y + i);
-
-    // 4. Print Info Line (if within range)
     int info_idx = i - info_start_line;
     if (info_idx >= 0 && info_idx < info_count) {
       if (info_idx == 0)
@@ -90,23 +112,24 @@ static void cmd_fetch(void) {
         console_print("\033[94mArch\033[0m    : AArch64 (VirtIO)");
       if (info_idx == 3)
         console_print("\033[94mShell\033[0m   : Helios Shell");
-      if (info_idx == 4)
-        console_print("\033[95mCPU\033[0m     : Cortex-A72");
-      if (info_idx == 5) {
+      if (info_idx == 4) {
         console_print("\033[92mMemory\033[0m  : ");
-        console_print_dec(mem);
+        char buf[32];
+        itoa(mem, buf, 10);
+        console_print(buf);
         console_print(" MiB / ");
-        console_print_dec(mem);
+        console_print(buf);
         console_print(" MiB");
       }
+      if (info_idx == 5)
+        console_print("\033[93mUptime\033[0m  : 0s (Todo)");
     }
   }
 
-  // Move cursor to below the block
-  console_set_cursor(0, start_y + total_lines);
-  console_print("\n");
+   
+  console_set_cursor(0, final_y);
 
-  // Palette centered?
+   
   uint32_t cy = console_get_cursor_y();
   console_set_cursor(info_col, cy);
   console_print("\033[41m   \033[42m   \033[43m   \033[44m   \033[45m   "
@@ -140,7 +163,7 @@ static void cmd_memtest(void) {
 
 static void cmd_ls(void) {
   if (cwd == NULL)
-    cwd = fs_root; // Init cwd
+    cwd = fs_root;  
   if (cwd == NULL) {
     console_print("Error: Filesystem not mounted.\n");
     return;
@@ -151,7 +174,7 @@ static void cmd_ls(void) {
   while ((entry = vfs_readdir(cwd, i)) != NULL) {
     console_print(entry->name);
 
-    // Check if directory (heuristic or need stat)
+     
     fs_node_t *node = vfs_finddir(cwd, entry->name);
     if (node && (node->flags & 0x7) == FS_DIRECTORY) {
       console_print("/");
@@ -226,7 +249,7 @@ static void cmd_write(char *args) {
     return;
   }
 
-  // Split filename and content
+   
   char *filename = args;
   char *content = NULL;
   for (int i = 0; args[i]; i++) {
@@ -265,7 +288,7 @@ static void cmd_cd(char *args) {
   if (cwd == NULL)
     cwd = fs_root;
 
-  // Handle "cd /" or empty
+   
   if (!args || !*args || (args[0] == '/' && args[1] == '\0')) {
     cwd = fs_root;
     return;
@@ -286,7 +309,7 @@ static void task_a(void) {
     yield();
   }
   console_print(" [Task A] Finished.\n");
-  // In a real OS, we need task_exit(). For now, infinite loop or spin.
+   
   while (1)
     yield();
 }
@@ -306,8 +329,8 @@ static void cmd_multitask(void) {
   process_create(task_a, "Task A");
   process_create(task_b, "Task B");
 
-  // The shell itself is a task (Kernel task).
-  // We yield to let others run.
+   
+   
   console_print("Shell yielding to tasks...\n");
   for (int i = 0; i < 15; i++) {
     yield();
@@ -321,20 +344,257 @@ static void cmd_unknown(const char *cmd) {
   console_print("'\n");
 }
 
-// Process a command
+ 
+static void cmd_echo(char *args) {
+  if (args && *args) {
+    console_print(args);
+  }
+  console_print("\n");
+}
+
+ 
+static void cmd_pwd(void) {
+  if (cwd == NULL || cwd == fs_root) {
+    console_print("/\n");
+  } else {
+     
+     
+    console_print("/");
+    console_print(cwd->name);
+    console_print("\n");
+  }
+}
+
+ 
+static void cmd_rm(char *args) {
+  if (!args || !*args) {
+    console_print("Usage: rm <filename>\n");
+    return;
+  }
+
+  if (cwd == NULL)
+    cwd = fs_root;
+
+  fs_node_t *file = vfs_finddir(cwd, args);
+  if (!file) {
+    console_print("Error: File not found\n");
+    return;
+  }
+
+  if (file->flags & FS_DIRECTORY) {
+    console_print("Error: Is a directory. Use rmdir.\n");
+    return;
+  }
+
+   
+  fs_node_t *parent = cwd;
+  fs_node_t *prev = NULL;
+  fs_node_t *curr = (fs_node_t *)parent->ptr;
+
+  while (curr) {
+    if (curr == file) {
+      if (prev) {
+        prev->next = curr->next;
+      } else {
+        parent->ptr = curr->next;
+      }
+       
+      console_print("Removed: ");
+      console_print(args);
+      console_print("\n");
+      return;
+    }
+    prev = curr;
+    curr = curr->next;
+  }
+  console_print("Error: Could not remove file\n");
+}
+
+ 
+static void cmd_rmdir(char *args) {
+  if (!args || !*args) {
+    console_print("Usage: rmdir <directory>\n");
+    return;
+  }
+
+  if (cwd == NULL)
+    cwd = fs_root;
+
+  fs_node_t *dir = vfs_finddir(cwd, args);
+  if (!dir) {
+    console_print("Error: Directory not found\n");
+    return;
+  }
+
+  if (!(dir->flags & FS_DIRECTORY)) {
+    console_print("Error: Not a directory. Use rm.\n");
+    return;
+  }
+
+   
+  if (dir->ptr != NULL) {
+    console_print("Error: Directory not empty\n");
+    return;
+  }
+
+   
+  fs_node_t *parent = cwd;
+  fs_node_t *prev = NULL;
+  fs_node_t *curr = (fs_node_t *)parent->ptr;
+
+  while (curr) {
+    if (curr == dir) {
+      if (prev) {
+        prev->next = curr->next;
+      } else {
+        parent->ptr = curr->next;
+      }
+      console_print("Removed directory: ");
+      console_print(args);
+      console_print("\n");
+      return;
+    }
+    prev = curr;
+    curr = curr->next;
+  }
+  console_print("Error: Could not remove directory\n");
+}
+
+ 
+static void cmd_cp(char *args) {
+  if (!args || !*args) {
+    console_print("Usage: cp <source> <destination>\n");
+    return;
+  }
+
+   
+  char *src = args;
+  char *dst = NULL;
+  for (int i = 0; args[i]; i++) {
+    if (args[i] == ' ') {
+      args[i] = 0;
+      dst = &args[i + 1];
+      while (*dst == ' ')
+        dst++;
+      break;
+    }
+  }
+
+  if (!dst || !*dst) {
+    console_print("Usage: cp <source> <destination>\n");
+    return;
+  }
+
+  if (cwd == NULL)
+    cwd = fs_root;
+
+   
+  fs_node_t *srcFile = vfs_finddir(cwd, src);
+  if (!srcFile) {
+    console_print("Error: Source file not found\n");
+    return;
+  }
+
+  if (srcFile->flags & FS_DIRECTORY) {
+    console_print("Error: Cannot copy directories\n");
+    return;
+  }
+
+   
+  fs_node_t *dstFile = vfs_create(cwd, dst);
+  if (!dstFile) {
+    console_print("Error: Could not create destination file\n");
+    return;
+  }
+
+   
+  if (srcFile->length > 0) {
+    uint8_t buffer[1024];
+    uint64_t offset = 0;
+    while (offset < srcFile->length) {
+      uint64_t toRead = srcFile->length - offset;
+      if (toRead > sizeof(buffer))
+        toRead = sizeof(buffer);
+      uint64_t read = vfs_read(srcFile, offset, toRead, buffer);
+      if (read == 0)
+        break;
+      vfs_write(dstFile, offset, read, buffer);
+      offset += read;
+    }
+  }
+
+  console_print("Copied ");
+  console_print(src);
+  console_print(" to ");
+  console_print(dst);
+  console_print("\n");
+}
+
+ 
+static void cmd_mv(char *args) {
+  if (!args || !*args) {
+    console_print("Usage: mv <source> <destination>\n");
+    return;
+  }
+
+   
+  char *src = args;
+  char *dst = NULL;
+  for (int i = 0; args[i]; i++) {
+    if (args[i] == ' ') {
+      args[i] = 0;
+      dst = &args[i + 1];
+      while (*dst == ' ')
+        dst++;
+      break;
+    }
+  }
+
+  if (!dst || !*dst) {
+    console_print("Usage: mv <source> <destination>\n");
+    return;
+  }
+
+  if (cwd == NULL)
+    cwd = fs_root;
+
+   
+  fs_node_t *srcFile = vfs_finddir(cwd, src);
+  if (!srcFile) {
+    console_print("Error: Source file not found\n");
+    return;
+  }
+
+   
+   
+  int i = 0;
+  while (dst[i] && i < 127) {
+    srcFile->name[i] = dst[i];
+    i++;
+  }
+  srcFile->name[i] = 0;
+
+  console_print("Renamed ");
+  console_print(src);
+  console_print(" to ");
+  console_print(dst);
+  console_print("\n");
+}
+
+ 
 static void process_command(char *cmd) {
-  // Skip empty commands
+   
   if (cmd[0] == '\0')
     return;
 
-  // Split cmd and args
+   
   char *args = NULL;
-  // Find first space
+   
   for (int i = 0; cmd[i]; i++) {
     if (cmd[i] == ' ') {
-      cmd[i] = 0; // Terminate cmd
+      cmd[i] = 0;  
       args = &cmd[i + 1];
-      // Skip extra spaces
+       
       while (*args == ' ')
         args++;
       break;
@@ -367,9 +627,24 @@ static void process_command(char *cmd) {
     cmd_cd(args);
   } else if (k_strcmp(cmd, "multitask") == 0) {
     cmd_multitask();
+  } else if (k_strcmp(cmd, "echo") == 0) {
+    cmd_echo(args);
+  } else if (k_strcmp(cmd, "pwd") == 0) {
+    cmd_pwd();
+  } else if (k_strcmp(cmd, "rm") == 0) {
+    cmd_rm(args);
+  } else if (k_strcmp(cmd, "rmdir") == 0) {
+    cmd_rmdir(args);
+  } else if (k_strcmp(cmd, "cp") == 0) {
+    cmd_cp(args);
+  } else if (k_strcmp(cmd, "mv") == 0) {
+    cmd_mv(args);
+  } else if (k_strcmp(cmd, "edit") == 0) {
+    editor_open(args);
+  } else if (k_strcmp(cmd, "donut") == 0) {
+    donut_start();
   } else {
-    // Restore space for error message
-    // Actually cmd is null terminated at space now
+     
     console_print("Error: Unknown command '");
     console_print(cmd);
     console_print("'\n");
@@ -382,19 +657,19 @@ static void process_command(char *cmd) {
 static char history[HISTORY_MAX][CMD_BUFFER_SIZE];
 static int history_count = 0;
 static int history_pos =
-    0; // Where we are currently looking in history (0 to history_count)
+    0;  
 
 static void history_add(const char *cmd) {
   if (cmd[0] == '\0')
     return;
 
-  // Check if duplicate of last command
+   
   if (history_count > 0 && k_strcmp(history[history_count - 1], cmd) == 0) {
     return;
   }
 
   if (history_count < HISTORY_MAX) {
-    // Simple append
+     
     int i = 0;
     while (cmd[i] && i < CMD_BUFFER_SIZE - 1) {
       history[history_count][i] = cmd[i];
@@ -403,16 +678,16 @@ static void history_add(const char *cmd) {
     history[history_count][i] = 0;
     history_count++;
   } else {
-    // Shift left
+     
     for (int i = 0; i < HISTORY_MAX - 1; i++) {
-      // strcpy(history[i], history[i+1])
+       
       char *dst = history[i];
       char *src = history[i + 1];
       while (*src)
         *dst++ = *src++;
       *dst = 0;
     }
-    // Copy to last
+     
     int i = 0;
     while (cmd[i] && i < CMD_BUFFER_SIZE - 1) {
       history[HISTORY_MAX - 1][i] = cmd[i];
@@ -424,8 +699,8 @@ static void history_add(const char *cmd) {
 
 void shell_run(void) {
   char cmd_buffer[CMD_BUFFER_SIZE];
-  size_t len = 0;        // Total length of input
-  size_t cursor_pos = 0; // Cursor position (0 to len)
+  size_t len = 0;         
+  size_t cursor_pos = 0;  
 
   console_print("Welcome to Helios OS Shell\n");
   console_print("Type 'help' for commands.\n\n");
@@ -439,7 +714,7 @@ void shell_run(void) {
     }
     console_print("$ ");
 
-    // Remember prompt end position for cursor movement
+     
     uint32_t prompt_x = console_get_cursor_x();
     uint32_t prompt_y = console_get_cursor_y();
 
@@ -477,17 +752,17 @@ void shell_run(void) {
 
       console_set_cursor_visible(0);
 
-      // Handle Special Keys
+       
       if (c == KEY_UP) {
         if (history_pos > 0) {
           history_pos--;
-          // Clear line: go to prompt, clear by printing spaces, go back
+           
           console_set_cursor(prompt_x, prompt_y);
           for (size_t i = 0; i < len; i++)
             console_putchar(' ');
           console_set_cursor(prompt_x, prompt_y);
 
-          // Copy history to buffer
+           
           char *src = history[history_pos];
           len = 0;
           while (src[len]) {
@@ -501,14 +776,14 @@ void shell_run(void) {
       } else if (c == KEY_DOWN) {
         if (history_pos < history_count) {
           history_pos++;
-          // Clear line
+           
           console_set_cursor(prompt_x, prompt_y);
           for (size_t i = 0; i < len; i++)
             console_putchar(' ');
           console_set_cursor(prompt_x, prompt_y);
 
           if (history_pos < history_count) {
-            // Copy history
+             
             char *src = history[history_pos];
             len = 0;
             while (src[len]) {
@@ -519,16 +794,16 @@ void shell_run(void) {
             cmd_buffer[len] = 0;
             cursor_pos = len;
           } else {
-            // Empty new line
+             
             cmd_buffer[0] = 0;
             len = 0;
             cursor_pos = 0;
           }
         }
       } else if (c == KEY_LEFT) {
-        // Move cursor left if possible
+         
         if (cursor_pos > 0) {
-          // Redraw char at old position
+           
           console_set_cursor(prompt_x + cursor_pos, prompt_y);
           if (cursor_pos < len) {
             console_putchar(cmd_buffer[cursor_pos]);
@@ -539,23 +814,23 @@ void shell_run(void) {
           console_set_cursor(prompt_x + cursor_pos, prompt_y);
         }
       } else if (c == KEY_RIGHT) {
-        // Move cursor right if possible
+         
         if (cursor_pos < len) {
-          // Redraw char at old position
+           
           console_set_cursor(prompt_x + cursor_pos, prompt_y);
           console_putchar(cmd_buffer[cursor_pos]);
           cursor_pos++;
           console_set_cursor(prompt_x + cursor_pos, prompt_y);
         }
       } else if (c == KEY_HOME) {
-        // Move cursor to start - redraw all chars from current to start
+         
         console_set_cursor(prompt_x + cursor_pos, prompt_y);
         if (cursor_pos < len)
           console_putchar(cmd_buffer[cursor_pos]);
         cursor_pos = 0;
         console_set_cursor(prompt_x, prompt_y);
       } else if (c == KEY_END) {
-        // Move cursor to end - redraw char at old position
+         
         console_set_cursor(prompt_x + cursor_pos, prompt_y);
         if (cursor_pos < len)
           console_putchar(cmd_buffer[cursor_pos]);
@@ -567,9 +842,9 @@ void shell_run(void) {
         history_add(cmd_buffer);
         break;
       } else if (c == 0x7F || c == 0x08) {
-        // Backspace: delete char before cursor
+         
         if (cursor_pos > 0) {
-          // Shift buffer left from cursor_pos to len
+           
           for (size_t i = cursor_pos - 1; i < len - 1; i++) {
             cmd_buffer[i] = cmd_buffer[i + 1];
           }
@@ -577,19 +852,19 @@ void shell_run(void) {
           cursor_pos--;
           cmd_buffer[len] = 0;
 
-          // Redraw from cursor position to end
+           
           console_set_cursor(prompt_x + cursor_pos, prompt_y);
           for (size_t i = cursor_pos; i < len; i++) {
             console_putchar(cmd_buffer[i]);
           }
-          console_putchar(' '); // Overwrite last char
-          // Move cursor back to position
+          console_putchar(' ');  
+           
           console_set_cursor(prompt_x + cursor_pos, prompt_y);
         }
       } else if (c >= 32 && c < 127) {
-        // Insert printable character at cursor
+         
         if (len < CMD_BUFFER_SIZE - 1) {
-          // Shift buffer right from cursor_pos
+           
           for (size_t i = len; i > cursor_pos; i--) {
             cmd_buffer[i] = cmd_buffer[i - 1];
           }
@@ -598,17 +873,17 @@ void shell_run(void) {
           cursor_pos++;
           cmd_buffer[len] = 0;
 
-          // Print from cursor_pos-1 to end
+           
           console_set_cursor(prompt_x + cursor_pos - 1, prompt_y);
           for (size_t i = cursor_pos - 1; i < len; i++) {
             console_putchar(cmd_buffer[i]);
           }
-          // Move cursor back to position
+           
           console_set_cursor(prompt_x + cursor_pos, prompt_y);
         }
       }
 
-      // Re-show cursor at current position after any key action
+       
       if (c != 0) {
         console_set_cursor(prompt_x + cursor_pos, prompt_y);
         console_set_cursor_visible(1);

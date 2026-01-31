@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 
-// VirtIO MMIO Register Offsets
+ 
 #define VIRTIO_MMIO_MAGIC_VALUE 0x000
 #define VIRTIO_MMIO_VERSION 0x004
 #define VIRTIO_MMIO_DEVICE_ID 0x008
@@ -29,17 +29,17 @@
 #define VIRTIO_MMIO_CONFIG_GENERATION 0x0fc
 #define VIRTIO_MMIO_CONFIG 0x100
 
-// Device IDs
+ 
 #define VIRTIO_ID_INPUT 18
 
-// Status bits
+ 
 #define VIRTIO_STATUS_ACKNOWLEDGE 1
 #define VIRTIO_STATUS_DRIVER 2
 #define VIRTIO_STATUS_DRIVER_OK 4
 #define VIRTIO_STATUS_FEATURES_OK 8
 #define VIRTIO_STATUS_FAILED 128
 
-// Virtqueue structures (simplified for polling)
+ 
 #define VIRTQ_DESC_F_NEXT 1
 #define VIRTQ_DESC_F_WRITE 2
 
@@ -67,4 +67,4 @@ struct virtq_used {
   struct virtq_used_elem ring[];
 } __attribute__((packed));
 
-#endif // VIRTIO_H
+#endif  

@@ -14,7 +14,7 @@
 
 struct fs_node;
 
-// Callback definitions
+ 
 typedef uint64_t (*read_type_t)(struct fs_node *, uint64_t, uint64_t,
                                 uint8_t *);
 typedef uint64_t (*write_type_t)(struct fs_node *, uint64_t, uint64_t,
@@ -39,8 +39,8 @@ typedef struct fs_node {
   finddir_type_t finddir;
   create_type_t create;
   mkdir_type_t mkdir;
-  struct fs_node *ptr;  // Used by mountpoints or internal data
-  struct fs_node *next; // For linked lists (directory children)
+  struct fs_node *ptr;   
+  struct fs_node *next;  
 } fs_node_t;
 
 struct dirent {
@@ -48,10 +48,10 @@ struct dirent {
   uint32_t inode;
 };
 
-// Global root node
+ 
 extern fs_node_t *fs_root;
 
-// Standard VFS wrappers
+ 
 uint64_t vfs_read(fs_node_t *node, uint64_t offset, uint64_t size,
                   uint8_t *buffer);
 uint64_t vfs_write(fs_node_t *node, uint64_t offset, uint64_t size,
@@ -63,4 +63,4 @@ fs_node_t *vfs_finddir(fs_node_t *node, char *name);
 fs_node_t *vfs_create(fs_node_t *node, char *name);
 fs_node_t *vfs_mkdir(fs_node_t *node, char *name);
 
-#endif // VFS_H
+#endif  
