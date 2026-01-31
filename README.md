@@ -1,6 +1,4 @@
 <div align="center">
-  <img src="assets/banner.png" alt="HELIOS OS" width="100%">
-  <br>
   <h1>HELIOS OS</h1>
   <p><b>A modern, minimalist 64-bit Operating System for ARM (AArch64).</b></p>
 
