@@ -36,7 +36,7 @@ LDFLAGS = \
 	-m aarch64elf
 
 # Source files
-SRCS_C = kernel.c uart.c console.c shell.c virtio.c keyboard.c pmm.c heap.c vfs.c string.c tmpfs.c process.c gic.c timer.c irq.c editor.c donut.c
+SRCS_C = kernel.c uart.c console.c shell.c virtio.c keyboard.c mouse.c gui.c pmm.c heap.c vfs.c string.c tmpfs.c process.c gic.c timer.c irq.c editor.c donut.c compositor.c
 SRCS_S = entry.S vectors.S
 
 OBJS = $(patsubst %.c,$(BUILD_DIR)/%.o,$(SRCS_C)) $(patsubst %.S,$(BUILD_DIR)/%.o,$(SRCS_S))
@@ -119,6 +119,7 @@ run: $(ISO)
 		-device ramfb \
 		-device qemu-xhci \
 		-device virtio-keyboard-device \
+		-device virtio-tablet-device \
 		-serial mon:stdio
 
 # Help

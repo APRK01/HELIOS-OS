@@ -2,16 +2,13 @@
 #include "console.h"
 #include "pmm.h"
 
- 
-
 struct block_header {
-  size_t size;  
-  int is_free;  
+  size_t size;
+  int is_free;
   struct block_header *next;
 };
 
- 
-#define HEAP_SIZE (1024 * 1024)
+#define HEAP_SIZE (64 * 1024 * 1024)
 static uint8_t heap_memory[HEAP_SIZE];
 static struct block_header *head = NULL;
 
@@ -28,15 +25,14 @@ void *malloc(size_t size) {
   if (size == 0 || head == NULL)
     return NULL;
 
-   
   size = (size + 7) & ~7;
 
   struct block_header *curr = head;
   while (curr) {
     if (curr->is_free && curr->size >= size) {
-       
+
       if (curr->size >= size + sizeof(struct block_header) + 8) {
-         
+
         struct block_header *new_block =
             (struct block_header *)((uint8_t *)curr +
                                     sizeof(struct block_header) + size);
@@ -53,7 +49,7 @@ void *malloc(size_t size) {
     curr = curr->next;
   }
 
-  return NULL;  
+  return NULL;
 }
 
 void free(void *ptr) {
@@ -64,14 +60,13 @@ void free(void *ptr) {
       (struct block_header *)((uint8_t *)ptr - sizeof(struct block_header));
   block->is_free = 1;
 
-   
   struct block_header *curr = head;
   while (curr) {
     if (curr->is_free && curr->next && curr->next->is_free) {
-       
+
       curr->size += sizeof(struct block_header) + curr->next->size;
       curr->next = curr->next->next;
-       
+
     } else {
       curr = curr->next;
     }

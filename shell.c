@@ -3,7 +3,10 @@
 #include "donut.h"
 #include "editor.h"
 #include "fetch_logo.h"
+#include "gui.h"
 #include "heap.h"
+#include "keyboard.h"
+#include "mouse.h"
 #include "pmm.h"
 #include "process.h"
 #include "string.h"
@@ -12,7 +15,6 @@
 #include <stddef.h>
 #include <stdint.h>
 
- 
 fs_node_t *cwd = NULL;
 
 #define CMD_BUFFER_SIZE 128
@@ -20,14 +22,12 @@ fs_node_t *cwd = NULL;
 
 #include "string.h"
 
- 
 static void hcf(void) {
   for (;;) {
     __asm__ volatile("wfi");
   }
 }
 
- 
 static void cmd_version(void) { console_print("Helios OS v0.1-ARM64\n"); }
 
 static void cmd_cls(void) { console_clear(); }
@@ -59,6 +59,8 @@ static void cmd_help(void) {
   console_print("  mv <s> <d> - Move/rename a file\n");
   console_print("  edit <f>   - Text editor (F2 save, ESC quit)\n");
   console_print("  donut      - Spinner 🍩\n");
+  console_print("  mouse      - Mouse demo 🖱️\n");
+  console_print("  desktop    - Launch Plasma Desktop\n");
   console_print("  multitask  - Run multitasking demo\n");
 }
 
@@ -68,39 +70,27 @@ static void cmd_fetch(void) {
   int info_count = 6;
   int total_lines = (logo_height > info_count) ? logo_height : info_count;
 
-   
   int info_start_line =
       (logo_height > info_count) ? (logo_height - info_count) / 2 : 0;
 
-   
   int info_col = 65;
 
-   
-   
-  console_print("\n");  
+  console_print("\n");
   for (int i = 0; i < total_lines; i++) {
     console_print("\n");
   }
 
-   
-   
   uint32_t final_y = console_get_cursor_y();
-   
-   
-   
-   
-   
 
   uint32_t start_y = final_y - total_lines;
 
   for (int i = 0; i < total_lines; i++) {
-     
+
     console_set_cursor(0, start_y + i);
     if (i < logo_height) {
       console_print(fetch_logo[i]);
     }
 
-     
     console_set_cursor(info_col, start_y + i);
     int info_idx = i - info_start_line;
     if (info_idx >= 0 && info_idx < info_count) {
@@ -126,10 +116,8 @@ static void cmd_fetch(void) {
     }
   }
 
-   
   console_set_cursor(0, final_y);
 
-   
   uint32_t cy = console_get_cursor_y();
   console_set_cursor(info_col, cy);
   console_print("\033[41m   \033[42m   \033[43m   \033[44m   \033[45m   "
@@ -163,7 +151,7 @@ static void cmd_memtest(void) {
 
 static void cmd_ls(void) {
   if (cwd == NULL)
-    cwd = fs_root;  
+    cwd = fs_root;
   if (cwd == NULL) {
     console_print("Error: Filesystem not mounted.\n");
     return;
@@ -174,7 +162,6 @@ static void cmd_ls(void) {
   while ((entry = vfs_readdir(cwd, i)) != NULL) {
     console_print(entry->name);
 
-     
     fs_node_t *node = vfs_finddir(cwd, entry->name);
     if (node && (node->flags & 0x7) == FS_DIRECTORY) {
       console_print("/");
@@ -249,7 +236,6 @@ static void cmd_write(char *args) {
     return;
   }
 
-   
   char *filename = args;
   char *content = NULL;
   for (int i = 0; args[i]; i++) {
@@ -288,7 +274,6 @@ static void cmd_cd(char *args) {
   if (cwd == NULL)
     cwd = fs_root;
 
-   
   if (!args || !*args || (args[0] == '/' && args[1] == '\0')) {
     cwd = fs_root;
     return;
@@ -309,7 +294,7 @@ static void task_a(void) {
     yield();
   }
   console_print(" [Task A] Finished.\n");
-   
+
   while (1)
     yield();
 }
@@ -329,8 +314,6 @@ static void cmd_multitask(void) {
   process_create(task_a, "Task A");
   process_create(task_b, "Task B");
 
-   
-   
   console_print("Shell yielding to tasks...\n");
   for (int i = 0; i < 15; i++) {
     yield();
@@ -344,7 +327,6 @@ static void cmd_unknown(const char *cmd) {
   console_print("'\n");
 }
 
- 
 static void cmd_echo(char *args) {
   if (args && *args) {
     console_print(args);
@@ -352,20 +334,17 @@ static void cmd_echo(char *args) {
   console_print("\n");
 }
 
- 
 static void cmd_pwd(void) {
   if (cwd == NULL || cwd == fs_root) {
     console_print("/\n");
   } else {
-     
-     
+
     console_print("/");
     console_print(cwd->name);
     console_print("\n");
   }
 }
 
- 
 static void cmd_rm(char *args) {
   if (!args || !*args) {
     console_print("Usage: rm <filename>\n");
@@ -386,7 +365,6 @@ static void cmd_rm(char *args) {
     return;
   }
 
-   
   fs_node_t *parent = cwd;
   fs_node_t *prev = NULL;
   fs_node_t *curr = (fs_node_t *)parent->ptr;
@@ -398,7 +376,7 @@ static void cmd_rm(char *args) {
       } else {
         parent->ptr = curr->next;
       }
-       
+
       console_print("Removed: ");
       console_print(args);
       console_print("\n");
@@ -410,7 +388,6 @@ static void cmd_rm(char *args) {
   console_print("Error: Could not remove file\n");
 }
 
- 
 static void cmd_rmdir(char *args) {
   if (!args || !*args) {
     console_print("Usage: rmdir <directory>\n");
@@ -431,13 +408,11 @@ static void cmd_rmdir(char *args) {
     return;
   }
 
-   
   if (dir->ptr != NULL) {
     console_print("Error: Directory not empty\n");
     return;
   }
 
-   
   fs_node_t *parent = cwd;
   fs_node_t *prev = NULL;
   fs_node_t *curr = (fs_node_t *)parent->ptr;
@@ -460,14 +435,12 @@ static void cmd_rmdir(char *args) {
   console_print("Error: Could not remove directory\n");
 }
 
- 
 static void cmd_cp(char *args) {
   if (!args || !*args) {
     console_print("Usage: cp <source> <destination>\n");
     return;
   }
 
-   
   char *src = args;
   char *dst = NULL;
   for (int i = 0; args[i]; i++) {
@@ -488,7 +461,6 @@ static void cmd_cp(char *args) {
   if (cwd == NULL)
     cwd = fs_root;
 
-   
   fs_node_t *srcFile = vfs_finddir(cwd, src);
   if (!srcFile) {
     console_print("Error: Source file not found\n");
@@ -500,14 +472,12 @@ static void cmd_cp(char *args) {
     return;
   }
 
-   
   fs_node_t *dstFile = vfs_create(cwd, dst);
   if (!dstFile) {
     console_print("Error: Could not create destination file\n");
     return;
   }
 
-   
   if (srcFile->length > 0) {
     uint8_t buffer[1024];
     uint64_t offset = 0;
@@ -530,14 +500,12 @@ static void cmd_cp(char *args) {
   console_print("\n");
 }
 
- 
 static void cmd_mv(char *args) {
   if (!args || !*args) {
     console_print("Usage: mv <source> <destination>\n");
     return;
   }
 
-   
   char *src = args;
   char *dst = NULL;
   for (int i = 0; args[i]; i++) {
@@ -558,15 +526,12 @@ static void cmd_mv(char *args) {
   if (cwd == NULL)
     cwd = fs_root;
 
-   
   fs_node_t *srcFile = vfs_finddir(cwd, src);
   if (!srcFile) {
     console_print("Error: Source file not found\n");
     return;
   }
 
-   
-   
   int i = 0;
   while (dst[i] && i < 127) {
     srcFile->name[i] = dst[i];
@@ -581,20 +546,18 @@ static void cmd_mv(char *args) {
   console_print("\n");
 }
 
- 
 static void process_command(char *cmd) {
-   
+
   if (cmd[0] == '\0')
     return;
 
-   
   char *args = NULL;
-   
+
   for (int i = 0; cmd[i]; i++) {
     if (cmd[i] == ' ') {
-      cmd[i] = 0;  
+      cmd[i] = 0;
       args = &cmd[i + 1];
-       
+
       while (*args == ' ')
         args++;
       break;
@@ -643,8 +606,28 @@ static void process_command(char *cmd) {
     editor_open(args);
   } else if (k_strcmp(cmd, "donut") == 0) {
     donut_start();
+  } else if (k_strcmp(cmd, "mouse") == 0) {
+    console_clear();
+    console_print("Mouse Demo - Move mouse around. Press Q to quit.\n");
+    while (1) {
+      mouse_poll();
+      int mx = mouse_get_x();
+      int my = mouse_get_y();
+      console_draw_cursor(mx, my);
+      if (keyboard_has_char()) {
+        int c = keyboard_getc();
+        if (c == 'q' || c == 'Q')
+          break;
+      }
+      for (volatile int i = 0; i < 10000; i++)
+        __asm__ volatile("" ::: "memory");
+    }
+    console_clear();
+  } else if (k_strcmp(cmd, "desktop") == 0) {
+    gui_desktop_run();
+    console_clear();
   } else {
-     
+
     console_print("Error: Unknown command '");
     console_print(cmd);
     console_print("'\n");
@@ -656,20 +639,18 @@ static void process_command(char *cmd) {
 #define HISTORY_MAX 10
 static char history[HISTORY_MAX][CMD_BUFFER_SIZE];
 static int history_count = 0;
-static int history_pos =
-    0;  
+static int history_pos = 0;
 
 static void history_add(const char *cmd) {
   if (cmd[0] == '\0')
     return;
 
-   
   if (history_count > 0 && k_strcmp(history[history_count - 1], cmd) == 0) {
     return;
   }
 
   if (history_count < HISTORY_MAX) {
-     
+
     int i = 0;
     while (cmd[i] && i < CMD_BUFFER_SIZE - 1) {
       history[history_count][i] = cmd[i];
@@ -678,16 +659,16 @@ static void history_add(const char *cmd) {
     history[history_count][i] = 0;
     history_count++;
   } else {
-     
+
     for (int i = 0; i < HISTORY_MAX - 1; i++) {
-       
+
       char *dst = history[i];
       char *src = history[i + 1];
       while (*src)
         *dst++ = *src++;
       *dst = 0;
     }
-     
+
     int i = 0;
     while (cmd[i] && i < CMD_BUFFER_SIZE - 1) {
       history[HISTORY_MAX - 1][i] = cmd[i];
@@ -699,8 +680,8 @@ static void history_add(const char *cmd) {
 
 void shell_run(void) {
   char cmd_buffer[CMD_BUFFER_SIZE];
-  size_t len = 0;         
-  size_t cursor_pos = 0;  
+  size_t len = 0;
+  size_t cursor_pos = 0;
 
   console_print("Welcome to Helios OS Shell\n");
   console_print("Type 'help' for commands.\n\n");
@@ -714,7 +695,6 @@ void shell_run(void) {
     }
     console_print("$ ");
 
-     
     uint32_t prompt_x = console_get_cursor_x();
     uint32_t prompt_y = console_get_cursor_y();
 
@@ -752,17 +732,15 @@ void shell_run(void) {
 
       console_set_cursor_visible(0);
 
-       
       if (c == KEY_UP) {
         if (history_pos > 0) {
           history_pos--;
-           
+
           console_set_cursor(prompt_x, prompt_y);
           for (size_t i = 0; i < len; i++)
             console_putchar(' ');
           console_set_cursor(prompt_x, prompt_y);
 
-           
           char *src = history[history_pos];
           len = 0;
           while (src[len]) {
@@ -776,14 +754,14 @@ void shell_run(void) {
       } else if (c == KEY_DOWN) {
         if (history_pos < history_count) {
           history_pos++;
-           
+
           console_set_cursor(prompt_x, prompt_y);
           for (size_t i = 0; i < len; i++)
             console_putchar(' ');
           console_set_cursor(prompt_x, prompt_y);
 
           if (history_pos < history_count) {
-             
+
             char *src = history[history_pos];
             len = 0;
             while (src[len]) {
@@ -794,16 +772,16 @@ void shell_run(void) {
             cmd_buffer[len] = 0;
             cursor_pos = len;
           } else {
-             
+
             cmd_buffer[0] = 0;
             len = 0;
             cursor_pos = 0;
           }
         }
       } else if (c == KEY_LEFT) {
-         
+
         if (cursor_pos > 0) {
-           
+
           console_set_cursor(prompt_x + cursor_pos, prompt_y);
           if (cursor_pos < len) {
             console_putchar(cmd_buffer[cursor_pos]);
@@ -814,23 +792,23 @@ void shell_run(void) {
           console_set_cursor(prompt_x + cursor_pos, prompt_y);
         }
       } else if (c == KEY_RIGHT) {
-         
+
         if (cursor_pos < len) {
-           
+
           console_set_cursor(prompt_x + cursor_pos, prompt_y);
           console_putchar(cmd_buffer[cursor_pos]);
           cursor_pos++;
           console_set_cursor(prompt_x + cursor_pos, prompt_y);
         }
       } else if (c == KEY_HOME) {
-         
+
         console_set_cursor(prompt_x + cursor_pos, prompt_y);
         if (cursor_pos < len)
           console_putchar(cmd_buffer[cursor_pos]);
         cursor_pos = 0;
         console_set_cursor(prompt_x, prompt_y);
       } else if (c == KEY_END) {
-         
+
         console_set_cursor(prompt_x + cursor_pos, prompt_y);
         if (cursor_pos < len)
           console_putchar(cmd_buffer[cursor_pos]);
@@ -842,9 +820,9 @@ void shell_run(void) {
         history_add(cmd_buffer);
         break;
       } else if (c == 0x7F || c == 0x08) {
-         
+
         if (cursor_pos > 0) {
-           
+
           for (size_t i = cursor_pos - 1; i < len - 1; i++) {
             cmd_buffer[i] = cmd_buffer[i + 1];
           }
@@ -852,19 +830,18 @@ void shell_run(void) {
           cursor_pos--;
           cmd_buffer[len] = 0;
 
-           
           console_set_cursor(prompt_x + cursor_pos, prompt_y);
           for (size_t i = cursor_pos; i < len; i++) {
             console_putchar(cmd_buffer[i]);
           }
-          console_putchar(' ');  
-           
+          console_putchar(' ');
+
           console_set_cursor(prompt_x + cursor_pos, prompt_y);
         }
       } else if (c >= 32 && c < 127) {
-         
+
         if (len < CMD_BUFFER_SIZE - 1) {
-           
+
           for (size_t i = len; i > cursor_pos; i--) {
             cmd_buffer[i] = cmd_buffer[i - 1];
           }
@@ -873,17 +850,15 @@ void shell_run(void) {
           cursor_pos++;
           cmd_buffer[len] = 0;
 
-           
           console_set_cursor(prompt_x + cursor_pos - 1, prompt_y);
           for (size_t i = cursor_pos - 1; i < len; i++) {
             console_putchar(cmd_buffer[i]);
           }
-           
+
           console_set_cursor(prompt_x + cursor_pos, prompt_y);
         }
       }
 
-       
       if (c != 0) {
         console_set_cursor(prompt_x + cursor_pos, prompt_y);
         console_set_cursor_visible(1);
