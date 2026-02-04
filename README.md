@@ -47,10 +47,26 @@ make
 
 ### Running
 
-```bash
-make run
-```
-This will launch QEMU with the generated `helios.iso`.
+#### macOS Users
+1. **Install QEMU**:
+   Open Terminal and run:
+   ```bash
+   brew install qemu
+   ```
+2. **Run HELIOS OS**:
+   Navigate to the folder containing `helios.iso` and run:
+   ```bash
+   qemu-system-aarch64 -M virt -cpu cortex-a72 -m 1G -device ramfb -device qemu-xhci -device usb-kbd -device usb-tablet -cdrom helios.iso
+   ```
+
+#### Windows Users
+1. **Install QEMU**:
+   Download and install QEMU from [qemu.org](https://www.qemu.org/download/#windows). Add it to your PATH environment variable.
+2. **Run HELIOS OS**:
+   Open PowerShell or Command Prompt, navigate to the folder containing `helios.iso`, and run:
+   ```powershell
+   qemu-system-aarch64 -M virt -cpu cortex-a72 -m 1G -device ramfb -device qemu-xhci -device usb-kbd -device usb-tablet -cdrom helios.iso
+   ```
 
 ## Commands
 
