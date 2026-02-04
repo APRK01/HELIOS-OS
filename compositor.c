@@ -227,6 +227,20 @@ void compositor_render(int cursor_x, int cursor_y) {
   }
 }
 
+void compositor_raise_window(window_t *win) {
+  if (!win)
+    return;
+
+  int max_z = win->z_index;
+  window_t *curr = window_list;
+  while (curr) {
+    if (curr->z_index > max_z)
+      max_z = curr->z_index;
+    curr = curr->next;
+  }
+  win->z_index = max_z + 1;
+}
+
  
 
 void window_clear(window_t *win, uint32_t color) {
@@ -300,6 +314,22 @@ void window_move(window_t *win, int dx, int dy) {
     win->x += dx;
     win->y += dy;
   }
+}
+
+void window_resize(window_t *win, int w, int h) {
+  if (!win || w <= 0 || h <= 0)
+    return;
+  if (win->width == w && win->height == h)
+    return;
+  uint32_t *new_buf = (uint32_t *)malloc(w * h * 4);
+  if (!new_buf)
+    return;
+  k_memset(new_buf, 0, w * h * 4);
+  if (win->buffer)
+    free(win->buffer);
+  win->buffer = new_buf;
+  win->width = w;
+  win->height = h;
 }
 
 int compositor_get_width(void) { return screen_w; }

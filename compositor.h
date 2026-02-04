@@ -27,6 +27,7 @@ void compositor_destroy_window(window_t *win);
 
  
 void compositor_render(int cursor_x, int cursor_y);
+void compositor_raise_window(window_t *win);
 
  
 void window_clear(window_t *win, uint32_t color);
@@ -39,6 +40,7 @@ void window_draw_text(window_t *win, int x, int y, const char *text,
 
  
 void window_move(window_t *win, int dx, int dy);
+void window_resize(window_t *win, int w, int h);
 
  
 int compositor_get_width(void);
